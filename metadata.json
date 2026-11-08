@@ -1,0 +1,6 @@
+{
+  "name": "PolyPanda: 500+ Languages",
+  "description": "Gamified language learning app featuring 500+ world languages, winding quest paths, interactive voice and word-bank lessons, streaks, leagues, and shop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

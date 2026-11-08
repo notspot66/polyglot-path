@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Connection validation test document (read-only probe)
+    match /test/{docId} {
+      allow get: if true;
+    }
+
+    // User Profile Document Validation
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'streak', 'totalXp', 'gems', 'hearts', 'maxHearts', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'email', 'displayName', 'photoURL', 'streak', 'totalXp', 'gems', 'hearts', 'maxHearts', 'streakFreeze', 'costume', 'currentLanguageId', 'languageProgress', 'livingWorldProgress', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048))
+        && data.streak is number && data.streak >= 0 && data.streak <= 100000
+        && data.totalXp is number && data.totalXp >= 0 && data.totalXp <= 100000000
+        && data.gems is number && data.gems >= 0 && data.gems <= 10000000
+        && data.hearts is number && data.hearts >= 0 && data.hearts <= 50
+        && data.maxHearts is number && data.maxHearts >= 1 && data.maxHearts <= 50
+        && (!('streakFreeze' in data) || data.streakFreeze is bool)
+        && (!('costume' in data) || (data.costume is string && data.costume.size() <= 64))
+        && (!('currentLanguageId' in data) || (data.currentLanguageId is string && data.currentLanguageId.size() <= 64))
+        && (!('languageProgress' in data) || data.languageProgress is map)
+        && (!('livingWorldProgress' in data) || data.livingWorldProgress is map);
+    }
+
+    match /users/{userId} {
+      // PII & progress isolation: only the owner can read their own profile
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().userId == request.auth.uid
+        && (!('createdAt' in incoming()) || incoming().createdAt == request.time)
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().userId == existing().userId
+        && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    // Public Leaderboard Document Validation
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll(['userId', 'displayName', 'xp', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'displayName', 'avatar', 'xp', 'flag', 'league', 'updatedAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.displayName is string && data.displayName.size() <= 100
+        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 32))
+        && data.xp is number && data.xp >= 0 && data.xp <= 100000000
+        && (!('flag' in data) || (data.flag is string && data.flag.size() <= 32))
+        && (!('league' in data) || (data.league is string && data.league.size() <= 64));
+    }
+
+    match /leaderboard/{userId} {
+      // Authenticated users can read the leaderboard rankings
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidLeaderboardEntry(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidLeaderboardEntry(incoming())
+        && incoming().userId == existing().userId
+        && incoming().updatedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}

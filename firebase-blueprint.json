@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Represents the user account, gamification stats, and polyglot progress.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address.",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name.",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar image URL.",
+          "maxLength": 1000
+        },
+        "streak": {
+          "type": "number",
+          "description": "Current consecutive daily learning streak."
+        },
+        "totalXp": {
+          "type": "number",
+          "description": "Total experience points accumulated."
+        },
+        "gems": {
+          "type": "number",
+          "description": "In-app gem currency balance."
+        },
+        "hearts": {
+          "type": "number",
+          "description": "Current available lives."
+        },
+        "maxHearts": {
+          "type": "number",
+          "description": "Maximum heart capacity."
+        },
+        "streakFreeze": {
+          "type": "boolean",
+          "description": "Whether a streak freeze shield is equipped."
+        },
+        "costume": {
+          "type": "string",
+          "description": "Equipped Pao panda costume identifier.",
+          "maxLength": 64
+        },
+        "currentLanguageId": {
+          "type": "string",
+          "description": "Identifier of currently active language course.",
+          "maxLength": 64
+        },
+        "languageProgress": {
+          "type": "object",
+          "description": "Progress mapping for courses learned."
+        },
+        "livingWorldProgress": {
+          "type": "object",
+          "description": "Living world unlocked locations and persistent character memories."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["userId", "streak", "totalXp", "gems", "hearts", "maxHearts", "updatedAt"]
+    },
+    "PublicLeaderboardEntry": {
+      "title": "PublicLeaderboardEntry",
+      "description": "Public learner scoreboard entry for weekly league rankings.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "User UID who owns this entry.",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Name shown on the leaderboard.",
+          "maxLength": 100
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Emoji or icon avatar.",
+          "maxLength": 32
+        },
+        "xp": {
+          "type": "number",
+          "description": "Current weekly XP."
+        },
+        "flag": {
+          "type": "string",
+          "description": "Country or flag icon.",
+          "maxLength": 32
+        },
+        "league": {
+          "type": "string",
+          "description": "Current league tier (e.g. Ruby, Diamond).",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of ranking calculation."
+        }
+      },
+      "required": ["userId", "displayName", "xp", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "UserProfile"
+      },
+      "description": "Private user account profile, progress stats, and active courses."
+    },
+    "/leaderboard/{userId}": {
+      "schema": {
+        "$ref": "PublicLeaderboardEntry"
+      },
+      "description": "Public leaderboard document containing competitive league XP."
+    }
+  }
+}
